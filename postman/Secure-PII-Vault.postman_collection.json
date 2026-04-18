@@ -1,0 +1,290 @@
+{
+  "info": {
+    "name": "Secure PII Vault",
+    "_postman_id": "0b2a0bde-8c4a-4d62-a012-2c4eb67b1f10",
+    "description": "Postman collection for the hardened secure PII vault + tokenization sample.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "customerId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Create vault token (idempotent)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-Idempotency-Key",
+            "value": "create-customer-1001"
+          }
+        ],
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "vault-writer",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "changeit-writer",
+              "type": "string"
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/api/v1/vault/tokens",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"subjectRef\": \"customer-1001\",\n  \"classification\": \"RESTRICTED\",\n  \"pii\": {\n    \"fullName\": \"Alice Doe\",\n    \"email\": \"alice@example.com\",\n    \"phoneNumber\": \"+48111222333\",\n    \"nationalId\": \"PL12345678\",\n    \"addressLine1\": \"Gdansk Street 1\",\n    \"dateOfBirth\": \"1990-01-01\"\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "Resolve token",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Purpose-Of-Use",
+            "value": "customer-support"
+          }
+        ],
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "vault-reader",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "changeit-reader",
+              "type": "string"
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/api/v1/vault/tokens/{{token}}"
+      }
+    },
+    {
+      "name": "Break-glass resolve token",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Purpose-Of-Use",
+            "value": "break-glass-emergency"
+          },
+          {
+            "key": "X-Break-Glass-Justification",
+            "value": "Critical fraud investigation after customer lockout"
+          }
+        ],
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "vault-reader",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "changeit-reader",
+              "type": "string"
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/api/v1/vault/tokens/{{token}}"
+      }
+    },
+    {
+      "name": "Create customer with token only",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "token-client",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "changeit-client",
+              "type": "string"
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/api/v1/customers",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"externalRef\": \"ext-1\",\n  \"piiToken\": \"{{token}}\",\n  \"customerStatus\": \"ACTIVE\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Get customer token-only record",
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "token-client",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "changeit-client",
+              "type": "string"
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/api/v1/customers/{{customerId}}"
+      }
+    },
+    {
+      "name": "Get vault key metadata",
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "vault-ops",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "changeit-ops",
+              "type": "string"
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/api/v1/vault/admin/keys"
+      }
+    },
+    {
+      "name": "Re-wrap token to current key",
+      "request": {
+        "method": "POST",
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "vault-ops",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "changeit-ops",
+              "type": "string"
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/api/v1/vault/admin/tokens/{{token}}/rewrap"
+      }
+    },
+    {
+      "name": "Get audit events for token",
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "vault-auditor",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "changeit-auditor",
+              "type": "string"
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/api/v1/audit/events/{{token}}"
+      }
+    },
+    {
+      "name": "Verify audit integrity",
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "vault-auditor",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "changeit-auditor",
+              "type": "string"
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/api/v1/audit/verify"
+      }
+    },
+    {
+      "name": "GDPR delete token",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "X-Purpose-Of-Use",
+            "value": "gdpr-delete-request"
+          }
+        ],
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "privacy-admin",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "changeit-delete",
+              "type": "string"
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/api/v1/vault/tokens/{{token}}"
+      }
+    }
+  ]
+}
