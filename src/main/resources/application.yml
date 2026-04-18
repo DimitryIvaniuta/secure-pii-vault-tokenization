@@ -1,0 +1,101 @@
+spring:
+  application:
+    name: secure-pii-vault-tokenization
+  main:
+    banner-mode: "off"
+  webflux:
+    problemdetails:
+      enabled: true
+  codec:
+    log-request-details: false
+  r2dbc:
+    url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/piivault}
+    username: ${SPRING_R2DBC_USERNAME:piivault}
+    password: ${SPRING_R2DBC_PASSWORD:piivault}
+    pool:
+      enabled: true
+      initial-size: 5
+      max-size: 20
+      max-idle-time: 30m
+  flyway:
+    enabled: true
+    url: ${SPRING_FLYWAY_URL:jdbc:postgresql://localhost:5432/piivault}
+    user: ${SPRING_FLYWAY_USER:piivault}
+    password: ${SPRING_FLYWAY_PASSWORD:piivault}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      timeout: 2s
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      acks: all
+      retries: 5
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+
+logging:
+  level:
+    root: INFO
+    com.github.dimitryivaniuta.gateway.piivault: INFO
+    org.springframework.web: INFO
+
+app:
+  audit:
+    topic-name: pii-vault.audit.v1
+    integrity-key: ${APP_AUDIT_INTEGRITY_KEY:ZFA9WHPcP5IOKyQ5HP3haFFkuT9p4JymQ+0Wi6+N6cs=}
+  cache:
+    token-state-ttl: PT24H
+  vault:
+    crypto:
+      active-key-id: ${APP_VAULT_CRYPTO_ACTIVE_KEY_ID:k1}
+      keys:
+        k1: ${APP_VAULT_CRYPTO_KEYS_K1:FMHj1sgQSUQ+Ymh16NfMptLxIIDc5/M4cSLAXF2N+4k=}
+        k2: ${APP_VAULT_CRYPTO_KEYS_K2:5oGzgVSB2OWbEFxnasmRjWaN/vg6sCRAHnh1+oqKLW0=}
+  purpose-policy:
+    read-allowed-purposes:
+      - customer-support
+      - fraud-investigation
+      - regulatory-response
+      - break-glass-emergency
+    delete-allowed-purposes:
+      - gdpr-delete-request
+      - gdpr-data-subject-request
+      - retention-expiry
+    break-glass-purposes:
+      - break-glass-emergency
+  security:
+    users:
+      writer:
+        username: ${APP_SECURITY_USERS_WRITER_USERNAME:vault-writer}
+        password: ${APP_SECURITY_USERS_WRITER_PASSWORD:changeit-writer}
+      reader:
+        username: ${APP_SECURITY_USERS_READER_USERNAME:vault-reader}
+        password: ${APP_SECURITY_USERS_READER_PASSWORD:changeit-reader}
+      delete:
+        username: ${APP_SECURITY_USERS_DELETE_USERNAME:privacy-admin}
+        password: ${APP_SECURITY_USERS_DELETE_PASSWORD:changeit-delete}
+      auditor:
+        username: ${APP_SECURITY_USERS_AUDITOR_USERNAME:vault-auditor}
+        password: ${APP_SECURITY_USERS_AUDITOR_PASSWORD:changeit-auditor}
+      token-client:
+        username: ${APP_SECURITY_USERS_TOKEN_CLIENT_USERNAME:token-client}
+        password: ${APP_SECURITY_USERS_TOKEN_CLIENT_PASSWORD:changeit-client}
+      operations:
+        username: ${APP_SECURITY_USERS_OPERATIONS_USERNAME:vault-ops}
+        password: ${APP_SECURITY_USERS_OPERATIONS_PASSWORD:changeit-ops}
